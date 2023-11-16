@@ -420,6 +420,7 @@ For easier development inside isolated workspace, one can use Visual Studio Code
       i_enable_imu: true
       i_enable_ir: true
       i_external_calibration_path: ''
+      i_tuning_blob_path: ''
       i_floodlight_brightness: 0
       i_ip: ''
       i_laser_dot_brightness: 800

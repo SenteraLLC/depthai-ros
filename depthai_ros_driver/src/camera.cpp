@@ -123,6 +123,11 @@ void Camera::saveCalibCB(const Trigger::Request::SharedPtr /*req*/, Trigger::Res
     res->success = true;
 }
 
+void Camera::loadTuningBlob(const std::string& path) {
+    RCLCPP_INFO(this->get_logger(), "Loading tuning blob from: %s", path.c_str());
+    pipeline->setCameraTuningBlobPath(path);
+}
+
 void Camera::savePipeline() {
     std::stringstream savePath;
     savePath << "/tmp/" << device->getMxId().c_str() << "_pipeline.json";
@@ -165,6 +170,9 @@ void Camera::createPipeline() {
     auto generator = std::make_unique<pipeline_gen::PipelineGenerator>();
     if(!ph->getParam<std::string>("i_external_calibration_path").empty()) {
         loadCalib(ph->getParam<std::string>("i_external_calibration_path"));
+    }
+    if(!ph->getParam<std::string>("i_tuning_blob_path").empty()) {
+        loadTuningBlob(ph->getParam<std::string>("i_tuning_blob_path"));
     }
     daiNodes = generator->createPipeline(
         this, device, pipeline, ph->getParam<std::string>("i_pipeline_type"), ph->getParam<std::string>("i_nn_type"), ph->getParam<bool>("i_enable_imu"));

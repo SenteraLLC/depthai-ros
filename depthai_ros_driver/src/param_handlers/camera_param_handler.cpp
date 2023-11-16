@@ -33,6 +33,7 @@ void CameraParamHandler::declareParams() {
     declareAndLogParam<bool>("i_pipeline_dump", false);
     declareAndLogParam<bool>("i_calibration_dump", false);
     declareAndLogParam<std::string>("i_external_calibration_path", "");
+    declareAndLogParam<std::string>("i_tuning_blob_path", "");
     declareAndLogParam<int>("i_laser_dot_brightness", 800, getRangedIntDescriptor(0, 1200));
     declareAndLogParam<int>("i_floodlight_brightness", 0, getRangedIntDescriptor(0, 1500));
 

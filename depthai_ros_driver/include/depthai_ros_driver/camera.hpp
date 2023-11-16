@@ -64,6 +64,11 @@ class Camera : public rclcpp::Node {
      * @param path Path to the calibration file.
      */
     void loadCalib(const std::string& path);
+    /**
+     * @brief Loads a camera tuning blob from a path
+     * @param path Path to the tuning blob file.
+     */
+    void loadTuningBlob(const std::string& path);
     rcl_interfaces::msg::SetParametersResult parameterCB(const std::vector<rclcpp::Parameter>& params);
     OnSetParametersCallbackHandle::SharedPtr paramCBHandle;
     std::unique_ptr<param_handlers::CameraParamHandler> ph;
