@@ -55,9 +55,12 @@ void SensorParamHandler::declareParams(std::shared_ptr<dai::node::MonoCamera> mo
     declareAndLogParam<int>("i_height", monoCam->getResolutionHeight());
     size_t iso = declareAndLogParam("r_iso", 800, getRangedIntDescriptor(100, 1600));
     size_t exposure = declareAndLogParam("r_exposure", 1000, getRangedIntDescriptor(1, 33000));
+    int8_t ae_compensation = declareAndLogParam("r_ae_compensation", 0, getRangedIntDescriptor(-9, 9));
 
     if(declareAndLogParam<bool>("r_set_man_exposure", false)) {
         monoCam->initialControl.setManualExposure(exposure, iso);
+    } else {
+        monoCam->initialControl.setAutoExposureCompensation(ae_compensation);
     }
     if(declareAndLogParam<bool>("i_fsync_continuous", false)) {
         monoCam->initialControl.setFrameSyncMode(
@@ -136,6 +139,7 @@ void SensorParamHandler::declareParams(std::shared_ptr<dai::node::ColorCamera> c
     colorCam->setPreviewKeepAspectRatio(declareAndLogParam("i_keep_preview_aspect_ratio", true));
     size_t iso = declareAndLogParam("r_iso", 800, getRangedIntDescriptor(100, 1600));
     size_t exposure = declareAndLogParam("r_exposure", 20000, getRangedIntDescriptor(1, 33000));
+    int8_t ae_compensation = declareAndLogParam("r_ae_compensation", 0, getRangedIntDescriptor(-9, 9));
     size_t whitebalance = declareAndLogParam("r_whitebalance", 3300, getRangedIntDescriptor(1000, 12000));
     size_t focus = declareAndLogParam("r_focus", 1, getRangedIntDescriptor(0, 255));
     if(declareAndLogParam("r_set_man_focus", false)) {
@@ -143,6 +147,8 @@ void SensorParamHandler::declareParams(std::shared_ptr<dai::node::ColorCamera> c
     }
     if(declareAndLogParam("r_set_man_exposure", false)) {
         colorCam->initialControl.setManualExposure(exposure, iso);
+    } else {
+        colorCam->initialControl.setAutoExposureCompensation(ae_compensation);
     }
     if(declareAndLogParam("r_set_man_whitebalance", false)) {
         colorCam->initialControl.setManualWhiteBalance(whitebalance);
@@ -176,6 +182,10 @@ dai::CameraControl SensorParamHandler::setRuntimeParams(const std::vector<rclcpp
         } else if(p.get_name() == getFullParamName("r_iso")) {
             if(getParam<bool>("r_set_man_exposure")) {
                 ctrl.setManualExposure(getParam<int>("r_exposure"), p.get_value<int>());
+            }
+        } else if(p.get_name() == getFullParamName("r_ae_compensation")) {
+            if(!getParam<bool>("r_set_man_exposure")) {
+                ctrl.setAutoExposureCompensation(p.get_value<int>());
             }
         } else if(p.get_name() == getFullParamName("r_set_man_focus")) {
             if(p.get_value<bool>()) {

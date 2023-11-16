@@ -4,7 +4,7 @@
 #include "rclcpp/node.hpp"
 namespace depthai_ros_driver {
 namespace param_handlers {
-inline rcl_interfaces::msg::ParameterDescriptor getRangedIntDescriptor(uint16_t min, uint16_t max) {
+inline rcl_interfaces::msg::ParameterDescriptor getRangedIntDescriptor(int32_t min, int32_t max) {
     {
         rcl_interfaces::msg::ParameterDescriptor desc;
         desc.integer_range.resize(1);

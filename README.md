@@ -486,6 +486,7 @@ For easier development inside isolated workspace, one can use Visual Studio Code
       i_simulated_topic_name: ''
       i_update_ros_base_time_on_ros_msg: false
       i_width: 1280
+      r_ae_compensation: 0
       r_exposure: 1000
       r_iso: 800
       r_set_man_exposure: false
@@ -532,6 +533,7 @@ For easier development inside isolated workspace, one can use Visual Studio Code
       i_simulated_topic_name: ''
       i_update_ros_base_time_on_ros_msg: false
       i_width: 1280
+      r_ae_compensation: 0
       r_exposure: 20000
       r_focus: 1
       r_iso: 800
@@ -564,6 +566,7 @@ For easier development inside isolated workspace, one can use Visual Studio Code
       i_simulated_topic_name: ''
       i_update_ros_base_time_on_ros_msg: false
       i_width: 1280
+      r_ae_compensation: 0
       r_exposure: 1000
       r_iso: 800
       r_set_man_exposure: false
