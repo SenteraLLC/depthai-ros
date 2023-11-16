@@ -53,9 +53,19 @@ void SensorParamHandler::declareParams(std::shared_ptr<dai::node::MonoCamera> mo
     monoCam->setResolution(utils::getValFromMap(resString, dai_nodes::sensor_helpers::monoResolutionMap));
     declareAndLogParam<int>("i_width", monoCam->getResolutionWidth());
     declareAndLogParam<int>("i_height", monoCam->getResolutionHeight());
+    
+    if(declareAndLogParam<bool>("i_set_ae_region", false)) {
+        std::vector<int64_t> ae_region = declareAndLogParam<std::vector<int64_t>>("i_ae_region", std::vector<int64_t>{0, 0, monoCam->getResolutionWidth(), monoCam->getResolutionHeight()});
+        if (ae_region.size() == 4) {
+            monoCam->initialControl.setAutoExposureRegion(ae_region[0], ae_region[1], ae_region[2], ae_region[3]);
+        } else {
+            RCLCPP_ERROR(getROSNode()->get_logger(), "Invalid rgb.i_ae_region, must have 4 entries [startx, starty, width, height]. Got: %ld", ae_region.size());
+        }
+    }
+    int8_t ae_compensation = declareAndLogParam("r_ae_compensation", 0, getRangedIntDescriptor(-9, 9));
+
     size_t iso = declareAndLogParam("r_iso", 800, getRangedIntDescriptor(100, 1600));
     size_t exposure = declareAndLogParam("r_exposure", 1000, getRangedIntDescriptor(1, 33000));
-    int8_t ae_compensation = declareAndLogParam("r_ae_compensation", 0, getRangedIntDescriptor(-9, 9));
 
     if(declareAndLogParam<bool>("r_set_man_exposure", false)) {
         monoCam->initialControl.setManualExposure(exposure, iso);
@@ -137,9 +147,19 @@ void SensorParamHandler::declareParams(std::shared_ptr<dai::node::ColorCamera> c
     }
     colorCam->setVideoSize(videoWidth, videoHeight);
     colorCam->setPreviewKeepAspectRatio(declareAndLogParam("i_keep_preview_aspect_ratio", true));
+
+    if(declareAndLogParam<bool>("i_set_ae_region", false)) {
+        std::vector<int64_t> ae_region = declareAndLogParam<std::vector<int64_t>>("i_ae_region", std::vector<int64_t>{0, 0, colorCam->getResolutionWidth(), colorCam->getResolutionHeight()});
+        if (ae_region.size() == 4) {
+            colorCam->initialControl.setAutoExposureRegion(ae_region[0], ae_region[1], ae_region[2], ae_region[3]);
+        } else {
+            RCLCPP_ERROR(getROSNode()->get_logger(), "Invalid (left/right).i_ae_region, must have 4 entries [startx, starty, width, height]. Got: %ld", ae_region.size());
+        }
+    }
+    int8_t ae_compensation = declareAndLogParam("r_ae_compensation", 0, getRangedIntDescriptor(-9, 9));
+
     size_t iso = declareAndLogParam("r_iso", 800, getRangedIntDescriptor(100, 1600));
     size_t exposure = declareAndLogParam("r_exposure", 20000, getRangedIntDescriptor(1, 33000));
-    int8_t ae_compensation = declareAndLogParam("r_ae_compensation", 0, getRangedIntDescriptor(-9, 9));
     size_t whitebalance = declareAndLogParam("r_whitebalance", 3300, getRangedIntDescriptor(1000, 12000));
     size_t focus = declareAndLogParam("r_focus", 1, getRangedIntDescriptor(0, 255));
     if(declareAndLogParam("r_set_man_focus", false)) {

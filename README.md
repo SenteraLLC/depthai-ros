@@ -482,6 +482,8 @@ For easier development inside isolated workspace, one can use Visual Studio Code
       i_reverse_stereo_socket_order: false
       i_sensor_img_orientation: NORMAL
       i_set_isp3a_fps: false
+      i_set_ae_region: false
+      i_ae_region: [ 0, 0, 1280, 720 ]
       i_simulate_from_topic: false
       i_simulated_topic_name: ''
       i_update_ros_base_time_on_ros_msg: false
@@ -529,6 +531,8 @@ For easier development inside isolated workspace, one can use Visual Studio Code
       i_sensor_img_orientation: NORMAL
       i_set_isp3a_fps: false
       i_set_isp_scale: true
+      i_set_ae_region: false
+      i_ae_region: [ 0, 0, 1920, 1080 ]
       i_simulate_from_topic: false
       i_simulated_topic_name: ''
       i_update_ros_base_time_on_ros_msg: false
@@ -562,6 +566,8 @@ For easier development inside isolated workspace, one can use Visual Studio Code
       i_reverse_stereo_socket_order: false
       i_sensor_img_orientation: NORMAL
       i_set_isp3a_fps: false
+      i_set_ae_region: false
+      i_ae_region: [ 0, 0, 1280, 720 ]
       i_simulate_from_topic: false
       i_simulated_topic_name: ''
       i_update_ros_base_time_on_ros_msg: false
