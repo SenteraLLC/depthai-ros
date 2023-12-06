@@ -11,6 +11,7 @@
 #include "image_transport/image_transport.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/compressed_image.hpp"
 
 namespace dai {
 class Pipeline;
@@ -75,9 +76,11 @@ class Stereo : public BaseNode {
                         std::shared_ptr<camera_info_manager::CameraInfoManager>& im,
                         std::shared_ptr<dai::DataOutputQueue>& q,
                         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub,
+                        rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr compressedPub,
                         rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr infoPub,
                         image_transport::CameraPublisher& pubIT,
                         bool isLeft);
+
     /*
      * This callback is used to synchronize left and right rectified frames
      * It is called every 10ms and it publishes the frames if they are synchronized
@@ -87,6 +90,7 @@ class Stereo : public BaseNode {
     std::unique_ptr<dai::ros::ImageConverter> stereoConv, leftRectConv, rightRectConv;
     image_transport::CameraPublisher stereoPubIT, leftRectPubIT, rightRectPubIT;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr stereoPub, leftRectPub, rightRectPub;
+    rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr compressedStereoPub, compressedLeftRectPub, compressedRightRectPub;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr stereoInfoPub, leftRectInfoPub, rightRectInfoPub;
     std::shared_ptr<camera_info_manager::CameraInfoManager> stereoIM, leftRectIM, rightRectIM;
     std::shared_ptr<dai::node::StereoDepth> stereoCamNode;

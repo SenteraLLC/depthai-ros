@@ -269,6 +269,50 @@ void ImageConverter::toDaiMsg(const ImageMsgs::Image& inMsg, dai::ImgFrame& outD
     outData.setType(revEncodingIter->first);
 }
 
+ImageMsgs::CompressedImage ImageConverter::toCompressedRosMsgRawPtr(std::shared_ptr<dai::ImgFrame> inData, const sensor_msgs::msg::CameraInfo& info) {
+    if(_updateRosBaseTimeOnToRosMsg) {
+        updateRosBaseTime();
+    }
+    std::chrono::_V2::steady_clock::time_point tstamp;
+    if(_getBaseDeviceTimestamp)
+        if(_addExpOffset)
+            tstamp = inData->getTimestampDevice(_expOffset);
+        else
+            tstamp = inData->getTimestampDevice();
+    else if(_addExpOffset)
+        tstamp = inData->getTimestamp(_expOffset);
+    else
+        tstamp = inData->getTimestamp();
+    ImageMsgs::CompressedImage outImageMsg;
+    StdMsgs::Header header;
+    header.frame_id = _frameName;
+
+    header.stamp = getFrameTime(_rosBaseTime, _steadyBaseTime, tstamp);
+
+    if(_fromBitstream) {
+        outImageMsg.header = header;
+        outImageMsg.format = "jpeg";
+        outImageMsg.data = inData->getData();
+        return outImageMsg;
+    } else {
+        throw std::runtime_error(
+            "Attempted to package uncompressed image as compressed.");
+    }
+}
+
+void ImageConverter::toCompressedRosMsg(std::shared_ptr<dai::ImgFrame> inData, std::deque<ImageMsgs::CompressedImage>& outImageMsgs) {
+    auto outImageMsg = toCompressedRosMsgRawPtr(inData);
+    outImageMsgs.push_back(outImageMsg);
+    return;
+}
+
+CompressedImagePtr ImageConverter::toCompressedRosMsgPtr(std::shared_ptr<dai::ImgFrame> inData) {
+    auto msg = toCompressedRosMsgRawPtr(inData);
+
+    CompressedImagePtr ptr = std::make_shared<ImageMsgs::CompressedImage>(msg);
+    return ptr;
+}
+
 void ImageConverter::planarToInterleaved(const std::vector<uint8_t>& srcData, std::vector<uint8_t>& destData, int w, int h, int numPlanes, int bpp) {
     if(numPlanes == 3) {
         // optimization (cache)

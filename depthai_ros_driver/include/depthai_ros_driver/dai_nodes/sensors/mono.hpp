@@ -6,6 +6,7 @@
 #include "image_transport/image_transport.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/compressed_image.hpp"
 
 namespace dai {
 class Pipeline;
@@ -59,6 +60,7 @@ class Mono : public BaseNode {
     std::unique_ptr<dai::ros::ImageConverter> imageConverter;
     image_transport::CameraPublisher monoPubIT;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr monoPub;
+    rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr monoCompressedPub;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr infoPub;
     std::shared_ptr<camera_info_manager::CameraInfoManager> infoManager;
     std::shared_ptr<dai::node::MonoCamera> monoCamNode;

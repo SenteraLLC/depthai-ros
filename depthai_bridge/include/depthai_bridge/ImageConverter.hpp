@@ -23,6 +23,8 @@ namespace ros {
 namespace StdMsgs = std_msgs::msg;
 namespace ImageMsgs = sensor_msgs::msg;
 using ImagePtr = ImageMsgs::Image::SharedPtr;
+using CompressedImagePtr = ImageMsgs::CompressedImage::SharedPtr;
+
 
 using TimePoint = std::chrono::time_point<std::chrono::steady_clock, std::chrono::steady_clock::duration>;
 
@@ -80,9 +82,15 @@ class ImageConverter {
      */
     void setAlphaScaling(double alphaScalingFactor = 0.0);
 
+    // Handle decompressed images (USB or high utilization PoE)
     void toRosMsg(std::shared_ptr<dai::ImgFrame> inData, std::deque<ImageMsgs::Image>& outImageMsgs);
     ImageMsgs::Image toRosMsgRawPtr(std::shared_ptr<dai::ImgFrame> inData, const sensor_msgs::msg::CameraInfo& info = sensor_msgs::msg::CameraInfo());
     ImagePtr toRosMsgPtr(std::shared_ptr<dai::ImgFrame> inData);
+
+    // Handle compressed image passthrough, repackage, but don't decompress
+    void toCompressedRosMsg(std::shared_ptr<dai::ImgFrame> inData, std::deque<ImageMsgs::CompressedImage>& outImageMsgs);
+    ImageMsgs::CompressedImage toCompressedRosMsgRawPtr(std::shared_ptr<dai::ImgFrame> inData, const sensor_msgs::msg::CameraInfo& info = sensor_msgs::msg::CameraInfo());
+    CompressedImagePtr toCompressedRosMsgPtr(std::shared_ptr<dai::ImgFrame> inData);
 
     void toDaiMsg(const ImageMsgs::Image& inMsg, dai::ImgFrame& outData);
 

@@ -5,6 +5,7 @@
 #include "image_transport/image_transport.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/compressed_image.hpp"
 
 namespace dai {
 class Pipeline;
@@ -63,6 +64,7 @@ class RGB : public BaseNode {
     std::unique_ptr<dai::ros::ImageConverter> imageConverter;
     image_transport::CameraPublisher rgbPubIT, previewPubIT;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr rgbPub, previewPub;
+    rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr compressedRgbPub;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr rgbInfoPub, previewInfoPub;
     std::shared_ptr<camera_info_manager::CameraInfoManager> infoManager, previewInfoManager;
     std::shared_ptr<dai::node::ColorCamera> colorCamNode;

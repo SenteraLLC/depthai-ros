@@ -98,7 +98,18 @@ void RGB::setupQueues(std::shared_ptr<dai::Device> device) {
             infoManager->loadCameraInfo(ph->getParam<std::string>("i_calibration_file"));
         }
         colorQ = device->getOutputQueue(ispQName, ph->getParam<int>("i_max_q_size"), false);
-        if(ipcEnabled()) {
+        if (ph->getParam<bool>("i_low_bandwidth") && ph->getParam<bool>("i_low_bandwidth_passthrough")) {
+            compressedRgbPub = getROSNode()->create_publisher<sensor_msgs::msg::CompressedImage>("~/" + getName() + "/image_raw/compressed", 10);
+            rgbInfoPub = getROSNode()->create_publisher<sensor_msgs::msg::CameraInfo>("~/" + getName() + "/camera_info", 10);
+            colorQ->addCallback(std::bind(sensor_helpers::compressedSplitPub,
+                                          std::placeholders::_1,
+                                          std::placeholders::_2,
+                                          *imageConverter,
+                                          compressedRgbPub,
+                                          rgbInfoPub,
+                                          infoManager,
+                                          ph->getParam<bool>("i_enable_lazy_publisher")));
+        } else if(ipcEnabled()) {
             rgbPub = getROSNode()->create_publisher<sensor_msgs::msg::Image>("~/" + getName() + "/image_raw", 10);
             rgbInfoPub = getROSNode()->create_publisher<sensor_msgs::msg::CameraInfo>("~/" + getName() + "/camera_info", 10);
             colorQ->addCallback(std::bind(sensor_helpers::splitPub,

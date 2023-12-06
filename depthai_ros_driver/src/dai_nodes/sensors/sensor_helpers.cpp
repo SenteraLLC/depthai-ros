@@ -114,6 +114,26 @@ void splitPub(const std::string& /*name*/,
     }
 }
 
+void compressedSplitPub(const std::string& /*name*/,
+              const std::shared_ptr<dai::ADatatype>& data,
+              dai::ros::ImageConverter& converter,
+              rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr imgPub,
+              rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr infoPub,
+              std::shared_ptr<camera_info_manager::CameraInfoManager> infoManager,
+              bool lazyPub) {
+    if(rclcpp::ok() && (!lazyPub || detectSubscription(imgPub, infoPub))) {
+        auto img = std::dynamic_pointer_cast<dai::ImgFrame>(data);
+        auto info = infoManager->getCameraInfo();
+        auto rawMsg = converter.toCompressedRosMsgRawPtr(img, info);
+        info.header = rawMsg.header;
+        sensor_msgs::msg::CameraInfo::UniquePtr infoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>(info);
+        sensor_msgs::msg::CompressedImage::UniquePtr msg = std::make_unique<sensor_msgs::msg::CompressedImage>(rawMsg);
+        imgPub->publish(std::move(msg));
+        infoPub->publish(std::move(infoMsg));
+    }
+}
+
+
 sensor_msgs::msg::CameraInfo getCalibInfo(const rclcpp::Logger& logger,
                                           dai::ros::ImageConverter& converter,
                                           std::shared_ptr<dai::Device> device,
@@ -137,6 +157,12 @@ std::shared_ptr<dai::node::VideoEncoder> createEncoder(std::shared_ptr<dai::Pipe
 }
 
 bool detectSubscription(const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr& pub,
+                        const rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr& infoPub) {
+    return (pub->get_subscription_count() > 0 || pub->get_intra_process_subscription_count() > 0 || infoPub->get_subscription_count() > 0
+            || infoPub->get_intra_process_subscription_count() > 0);
+}
+
+bool detectSubscription(const rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr& pub,
                         const rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr& infoPub) {
     return (pub->get_subscription_count() > 0 || pub->get_intra_process_subscription_count() > 0 || infoPub->get_subscription_count() > 0
             || infoPub->get_intra_process_subscription_count() > 0);

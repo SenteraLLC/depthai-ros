@@ -12,6 +12,7 @@
 #include "depthai/pipeline/datatype/CameraControl.hpp"
 #include "image_transport/camera_publisher.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
+#include "sensor_msgs/msg/compressed_image.hpp"
 
 namespace dai {
 class Device;
@@ -71,6 +72,14 @@ void splitPub(const std::string& /*name*/,
               std::shared_ptr<camera_info_manager::CameraInfoManager> infoManager,
               bool lazyPub = true);
 
+void compressedSplitPub(const std::string& /*name*/,
+              const std::shared_ptr<dai::ADatatype>& data,
+              dai::ros::ImageConverter& converter,
+              rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr imgPub,
+              rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr infoPub,
+              std::shared_ptr<camera_info_manager::CameraInfoManager> infoManager,
+              bool lazyPub = true);
+
 sensor_msgs::msg::CameraInfo getCalibInfo(const rclcpp::Logger& logger,
                                           dai::ros::ImageConverter& converter,
                                           std::shared_ptr<dai::Device> device,
@@ -81,6 +90,9 @@ std::shared_ptr<dai::node::VideoEncoder> createEncoder(std::shared_ptr<dai::Pipe
                                                        int quality,
                                                        dai::VideoEncoderProperties::Profile profile = dai::VideoEncoderProperties::Profile::MJPEG);
 bool detectSubscription(const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr& pub,
+                        const rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr& infoPub);
+
+bool detectSubscription(const rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr& pub,
                         const rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr& infoPub);
 }  // namespace sensor_helpers
 }  // namespace dai_nodes

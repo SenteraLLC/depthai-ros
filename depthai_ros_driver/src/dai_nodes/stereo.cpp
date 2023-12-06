@@ -120,6 +120,7 @@ void Stereo::setupRectQueue(std::shared_ptr<dai::Device> device,
                             std::shared_ptr<camera_info_manager::CameraInfoManager>& im,
                             std::shared_ptr<dai::DataOutputQueue>& q,
                             rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub,
+                            rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr compressedPub,
                             rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr infoPub,
                             image_transport::CameraPublisher& pubIT,
                             bool isLeft) {
@@ -131,6 +132,7 @@ void Stereo::setupRectQueue(std::shared_ptr<dai::Device> device,
     if(lowBandwidth) {
         conv->convertFromBitstream(dai::RawImgFrame::Type::GRAY8);
     }
+    bool lowBandwidthPassthrough = ph->getParam<bool>(isLeft ? "i_left_rect_low_bandwidth_passthrough" : "i_right_rect_low_bandwidth_passthrough");
     bool addOffset = ph->getParam<bool>(isLeft ? "i_left_rect_add_exposure_offset" : "i_right_rect_add_exposure_offset");
     if(addOffset) {
         auto offset = static_cast<dai::CameraExposureOffset>(ph->getParam<int>(isLeft ? "i_left_rect_exposure_offset" : "i_right_rect_exposure_offset"));
@@ -163,7 +165,20 @@ void Stereo::setupRectQueue(std::shared_ptr<dai::Device> device,
     // if publish synced pair is set to true then we skip individual publishing of left and right rectified frames
     bool addCallback = !ph->getParam<bool>("i_publish_synced_rect_pair");
 
-    if(ipcEnabled()) {
+    if (lowBandwidth && lowBandwidthPassthrough) {
+        compressedPub = getROSNode()->create_publisher<sensor_msgs::msg::CompressedImage>("~/" + sensorName + "/image_rect/compressed", 10);
+        infoPub = getROSNode()->create_publisher<sensor_msgs::msg::CameraInfo>("~/" + getName() + "/camera_info", 10);
+        if(addCallback) {
+            q->addCallback(std::bind(sensor_helpers::compressedSplitPub,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     *conv,
+                                     compressedPub,
+                                     infoPub,
+                                     im,
+                                     ph->getParam<bool>("i_enable_lazy_publisher")));
+        }
+    } else if(ipcEnabled()) {
         pub = getROSNode()->create_publisher<sensor_msgs::msg::Image>("~/" + sensorName + "/image_rect", 10);
         infoPub = getROSNode()->create_publisher<sensor_msgs::msg::CameraInfo>("~/" + getName() + "/camera_info", 10);
         if(addCallback) {
@@ -186,12 +201,13 @@ void Stereo::setupRectQueue(std::shared_ptr<dai::Device> device,
 }
 
 void Stereo::setupLeftRectQueue(std::shared_ptr<dai::Device> device) {
-    setupRectQueue(device, leftSensInfo, leftRectQName, leftRectConv, leftRectIM, leftRectQ, leftRectPub, leftRectInfoPub, leftRectPubIT, true);
+    setupRectQueue(device, leftSensInfo, leftRectQName, leftRectConv, leftRectIM, leftRectQ, leftRectPub, compressedLeftRectPub, leftRectInfoPub, leftRectPubIT, true);
 }
 
 void Stereo::setupRightRectQueue(std::shared_ptr<dai::Device> device) {
-    setupRectQueue(device, rightSensInfo, rightRectQName, rightRectConv, rightRectIM, rightRectQ, rightRectPub, rightRectInfoPub, rightRectPubIT, false);
+    setupRectQueue(device, rightSensInfo, rightRectQName, rightRectConv, rightRectIM, rightRectQ, rightRectPub, compressedRightRectPub, rightRectInfoPub, rightRectPubIT, false);
 }
+
 
 void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
     std::string tfPrefix;
@@ -245,7 +261,18 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
 
     stereoIM->setCameraInfo(info);
     stereoQ = device->getOutputQueue(stereoQName, ph->getParam<int>("i_max_q_size"), false);
-    if(ipcEnabled()) {
+    if (ph->getParam<bool>("i_low_bandwidth") && ph->getParam<bool>("i_low_bandwidth_passthrough")) {
+        compressedStereoPub = getROSNode()->create_publisher<sensor_msgs::msg::CompressedImage>("~/" + getName() + "/image_raw/compressed", 10);
+        stereoInfoPub = getROSNode()->create_publisher<sensor_msgs::msg::CameraInfo>("~/" + getName() + "/camera_info", 10);
+        stereoQ->addCallback(std::bind(sensor_helpers::compressedSplitPub,
+                                      std::placeholders::_1,
+                                      std::placeholders::_2,
+                                      *stereoConv,
+                                      compressedStereoPub,
+                                      stereoInfoPub,
+                                      stereoIM,
+                                      ph->getParam<bool>("i_enable_lazy_publisher")));
+    } else if(ipcEnabled()) {
         stereoPub = getROSNode()->create_publisher<sensor_msgs::msg::Image>("~/" + getName() + "/image_raw", 10);
         stereoInfoPub = getROSNode()->create_publisher<sensor_msgs::msg::CameraInfo>("~/" + getName() + "/camera_info", 10);
         stereoQ->addCallback(std::bind(sensor_helpers::splitPub,
@@ -275,7 +302,25 @@ void Stereo::syncTimerCB() {
         RCLCPP_WARN(getROSNode()->get_logger(), "Left and right rectified frames are not synchronized!");
     } else {
         bool lazyPub = ph->getParam<bool>("i_enable_lazy_publisher");
-        if(ipcEnabled() && rclcpp::ok()
+        if (rclcpp::ok() && ph->getParam<bool>("i_low_bandwidth") && ph->getParam<bool>("i_low_bandwidth_passthrough")
+            && (!lazyPub || sensor_helpers::detectSubscription(compressedLeftRectPub, leftRectInfoPub)
+               || sensor_helpers::detectSubscription(compressedRightRectPub, rightRectInfoPub))) {
+            auto leftInfo = leftRectIM->getCameraInfo();
+            auto leftRawMsg = leftRectConv->toCompressedRosMsgRawPtr(left);
+            leftInfo.header = leftRawMsg.header;
+            auto rightInfo = rightRectIM->getCameraInfo();
+            auto rightRawMsg = rightRectConv->toCompressedRosMsgRawPtr(right);
+            rightRawMsg.header.stamp = leftRawMsg.header.stamp;
+            rightInfo.header = rightRawMsg.header;
+            sensor_msgs::msg::CameraInfo::UniquePtr leftInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>(leftInfo);
+            sensor_msgs::msg::CompressedImage::UniquePtr leftMsg = std::make_unique<sensor_msgs::msg::CompressedImage>(leftRawMsg);
+            sensor_msgs::msg::CameraInfo::UniquePtr rightInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>(rightInfo);
+            sensor_msgs::msg::CompressedImage::UniquePtr rightMsg = std::make_unique<sensor_msgs::msg::CompressedImage>(rightRawMsg);
+            compressedLeftRectPub->publish(std::move(leftMsg));
+            leftRectInfoPub->publish(std::move(leftInfoMsg));
+            compressedRightRectPub->publish(std::move(rightMsg));
+            rightRectInfoPub->publish(std::move(rightInfoMsg));
+        } else if(ipcEnabled() && rclcpp::ok()
            && (!lazyPub || sensor_helpers::detectSubscription(leftRectPub, leftRectInfoPub)
                || sensor_helpers::detectSubscription(rightRectPub, rightRectInfoPub))) {
             auto leftInfo = leftRectIM->getCameraInfo();
