@@ -30,6 +30,7 @@ rclcpp
 sensor_msgs
 diagnostic_updater
 diagnostic_msgs
+depthai_ros_msgs
 )
 
 set(SENSOR_DEPS

@@ -12,6 +12,7 @@
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/compressed_image.hpp"
+#include "depthai_ros_msgs/msg/disparity_info.hpp"
 
 namespace dai {
 class Pipeline;
@@ -92,6 +93,7 @@ class Stereo : public BaseNode {
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr stereoPub, leftRectPub, rightRectPub;
     rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr compressedStereoPub, compressedLeftRectPub, compressedRightRectPub;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr stereoInfoPub, leftRectInfoPub, rightRectInfoPub;
+    rclcpp::Publisher<depthai_ros_msgs::msg::DisparityInfo>::SharedPtr dispInfoPub;
     std::shared_ptr<camera_info_manager::CameraInfoManager> stereoIM, leftRectIM, rightRectIM;
     std::shared_ptr<dai::node::StereoDepth> stereoCamNode;
     std::shared_ptr<dai::node::VideoEncoder> stereoEnc, leftRectEnc, rightRectEnc;
