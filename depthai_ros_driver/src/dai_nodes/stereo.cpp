@@ -241,13 +241,41 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
                                              ph->getParam<int>("i_width"),
                                              ph->getParam<int>("i_height"));
     auto calibHandler = device->readCalibration();
-    if(!ph->getParam<bool>("i_output_disparity")) {
-        if(ph->getParam<bool>("i_reverse_stereo_socket_order")) {
-            stereoConv->convertDispToDepth(calibHandler.getBaselineDistance(leftSensInfo.socket, rightSensInfo.socket, false));
-        } else {
-            stereoConv->convertDispToDepth(calibHandler.getBaselineDistance(rightSensInfo.socket, leftSensInfo.socket, false));
-        }
+
+    // Use the node parameters
+    // Use sensor_helpers to getCalibInfo with the proper i_height and i_width
+    double baseline = 0.0;
+    std::string dist_primary;
+    dai::CameraBoardSocket dist_primary_socket;
+
+    if(ph->getParam<bool>("i_reverse_stereo_socket_order")) {
+        baseline = calibHandler.getBaselineDistance(leftSensInfo.socket, rightSensInfo.socket, false);
+        dist_primary = leftSensInfo.name;
+        dist_primary_socket = leftSensInfo.socket;
+    } else {
+        baseline = calibHandler.getBaselineDistance(rightSensInfo.socket, leftSensInfo.socket, false);
+        dist_primary = rightSensInfo.name;
+        dist_primary_socket = rightSensInfo.socket;
     }
+
+    auto distCamInfo = sensor_helpers::getCalibInfo(getROSNode()->get_logger(),
+                                                    *stereoConv,
+                                                    device,
+                                                    dist_primary_socket,
+                                                    getROSNode()->get_parameter(dist_primary + ".i_width").as_int(),
+                                                    getROSNode()->get_parameter(dist_primary + ".i_height").as_int());
+    double disparity_focal = (distCamInfo.p[0] + distCamInfo.p[5]) / 2.0;
+    RCLCPP_INFO(getROSNode()->get_logger(), "Primary Disparity is %s camera of size %ld x %ld w/ focal %0.3fmm", 
+                                                    dist_primary.c_str(),
+                                                    getROSNode()->get_parameter(dist_primary + ".i_width").as_int(),
+                                                    getROSNode()->get_parameter(dist_primary + ".i_height").as_int(),
+                                                    disparity_focal);
+
+    // Only convert disparity to depth if needed
+    if(!ph->getParam<bool>("i_output_disparity")) {
+        stereoConv->convertDispToDepth(baseline);
+    }
+
     // remove distortion if alpha scaling is not enabled
     if(!ph->getParam<bool>("i_enable_alpha_scaling")) {
         for(auto& d : info.d) {
@@ -264,13 +292,18 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
     if (ph->getParam<bool>("i_low_bandwidth") && ph->getParam<bool>("i_low_bandwidth_passthrough")) {
         compressedStereoPub = getROSNode()->create_publisher<sensor_msgs::msg::CompressedImage>("~/" + getName() + "/image_raw/compressed", 10);
         stereoInfoPub = getROSNode()->create_publisher<sensor_msgs::msg::CameraInfo>("~/" + getName() + "/camera_info", 10);
-        stereoQ->addCallback(std::bind(sensor_helpers::compressedSplitPub,
+        dispInfoPub = getROSNode()->create_publisher<depthai_ros_msgs::msg::DisparityInfo>("~/" + getName() + "/disparity_info", 10);
+        stereoQ->addCallback(std::bind(sensor_helpers::compressedDisparitySplitPub,
                                       std::placeholders::_1,
                                       std::placeholders::_2,
                                       *stereoConv,
                                       compressedStereoPub,
                                       stereoInfoPub,
                                       stereoIM,
+                                      dispInfoPub,
+                                      ph->getParam<bool>("i_extended_disp"),
+                                      baseline,
+                                      disparity_focal,
                                       ph->getParam<bool>("i_enable_lazy_publisher")));
     } else if(ipcEnabled()) {
         stereoPub = getROSNode()->create_publisher<sensor_msgs::msg::Image>("~/" + getName() + "/image_raw", 10);

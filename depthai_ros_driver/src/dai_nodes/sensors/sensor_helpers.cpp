@@ -133,6 +133,38 @@ void compressedSplitPub(const std::string& /*name*/,
     }
 }
 
+void compressedDisparitySplitPub(const std::string& /*name*/,
+              const std::shared_ptr<dai::ADatatype>& data,
+              dai::ros::ImageConverter& converter,
+              rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr imgPub,
+              rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr infoPub,
+              std::shared_ptr<camera_info_manager::CameraInfoManager> infoManager,
+              rclcpp::Publisher<depthai_ros_msgs::msg::DisparityInfo>::SharedPtr dispInfoPub,
+              bool extended_disp,
+              double baseline,
+              double focal_px,
+              bool lazyPub) {
+    if(rclcpp::ok() && (!lazyPub || detectSubscription(imgPub, infoPub, dispInfoPub))) {
+        auto img = std::dynamic_pointer_cast<dai::ImgFrame>(data);
+        auto dispInfo = depthai_ros_msgs::msg::DisparityInfo();
+        auto info = infoManager->getCameraInfo();
+        auto rawMsg = converter.toCompressedRosMsgRawPtr(img, info);
+        info.header = rawMsg.header;
+        dispInfo.header = rawMsg.header;
+        dispInfo.f = focal_px;
+        dispInfo.t = baseline;
+        dispInfo.min_disparity = 0;
+        dispInfo.max_disparity = extended_disp ? 192 : 96;
+        dispInfo.delta_d = 1.0;
+        sensor_msgs::msg::CameraInfo::UniquePtr infoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>(info);
+        sensor_msgs::msg::CompressedImage::UniquePtr msg = std::make_unique<sensor_msgs::msg::CompressedImage>(rawMsg);
+        depthai_ros_msgs::msg::DisparityInfo::UniquePtr dispMsg = std::make_unique<depthai_ros_msgs::msg::DisparityInfo>(dispInfo);
+        imgPub->publish(std::move(msg));
+        infoPub->publish(std::move(infoMsg));
+        dispInfoPub->publish(std::move(dispMsg));
+    }
+}
+
 
 sensor_msgs::msg::CameraInfo getCalibInfo(const rclcpp::Logger& logger,
                                           dai::ros::ImageConverter& converter,
@@ -167,6 +199,15 @@ bool detectSubscription(const rclcpp::Publisher<sensor_msgs::msg::CompressedImag
     return (pub->get_subscription_count() > 0 || pub->get_intra_process_subscription_count() > 0 || infoPub->get_subscription_count() > 0
             || infoPub->get_intra_process_subscription_count() > 0);
 }
+
+bool detectSubscription(const rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr& pub,
+                        const rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr& infoPub,
+                        const rclcpp::Publisher<depthai_ros_msgs::msg::DisparityInfo>::SharedPtr& dispPub) {
+    return (pub->get_subscription_count() > 0 || pub->get_intra_process_subscription_count() > 0 || 
+            infoPub->get_subscription_count() > 0 || infoPub->get_intra_process_subscription_count() > 0 ||
+            dispPub->get_subscription_count() > 0 || dispPub->get_intra_process_subscription_count() > 0);
+}
+
 }  // namespace sensor_helpers
 }  // namespace dai_nodes
 }  // namespace depthai_ros_driver

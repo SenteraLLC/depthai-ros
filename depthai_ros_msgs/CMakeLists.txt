@@ -22,6 +22,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AutoFocusCtrl.msg"
+  "msg/DisparityInfo.msg"
   "msg/HandLandmark.msg"
   "msg/HandLandmarkArray.msg"
   "msg/ImuWithMagneticField.msg"
